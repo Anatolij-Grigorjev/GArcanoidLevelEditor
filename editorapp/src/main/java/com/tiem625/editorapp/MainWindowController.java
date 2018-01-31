@@ -5,16 +5,21 @@
  */
 package com.tiem625.editorapp;
 
+import com.tiem625.editorapp.components.BrickColorComboBox;
+import com.tiem625.editorapp.enums.BrickColors;
 import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -36,6 +41,8 @@ public class MainWindowController implements Initializable {
     private TextField fldRowPadding;
     @FXML
     private TextField fldColPadding; 
+    
+    private ComboBox<BrickColors>[][] gridNodes;
     
     @FXML 
     private GridPane gridLevelGrid;
@@ -75,6 +82,8 @@ public class MainWindowController implements Initializable {
                     rc.setPercentHeight(100.0 / validValue);
                     rowConstraints.add(rc);
                 });
+                
+                populateGrid();
             }
         };
     
@@ -93,6 +102,8 @@ public class MainWindowController implements Initializable {
                     cc.setPercentWidth(100.0 / validValue);
                     columnConstraints.add(cc);
                 });
+                
+                populateGrid();
             }
         };
     
@@ -140,6 +151,46 @@ public class MainWindowController implements Initializable {
         fldRowPadding.setText("0");
         fldGridCols.setText("1");
         fldGridRows.setText("1");
+        
+        populateGrid();
+    }
+    
+    private void clearGrid() {
+   
+        
+        Stream.of(gridNodes).forEach(nodes -> {
+            Stream.of(nodes).forEach(node -> {
+
+                gridLevelGrid.getChildren().remove(node);
+            });
+        });
+        
+    }
+    
+    private void populateGrid() {
+        
+        int numRows = gridLevelGrid.getRowConstraints().size();
+        int numCols = gridLevelGrid.getColumnConstraints().size();
+        
+        if (gridNodes != null) {
+            clearGrid();
+        }
+        gridNodes = new BrickColorComboBox[numRows][numCols];
+        
+        IntStream.range(0, numRows).forEachOrdered(rIdx -> {
+            
+            IntStream.range(0, numCols).forEachOrdered(cIdx -> {
+                ComboBox<BrickColors> elem = new BrickColorComboBox();
+                gridNodes[rIdx][cIdx] = elem;
+                gridLevelGrid.add(elem, cIdx, rIdx);
+                double cellWidth = gridLevelGrid.getColumnConstraints().get(0).getPrefWidth();
+                double cellHeight = gridLevelGrid.getRowConstraints().get(0).getPrefHeight();
+                
+                elem.setMinSize(cellWidth, cellHeight);
+                elem.setMaxSize(cellWidth, cellHeight);
+            });
+        });
+        
     }
     
     
