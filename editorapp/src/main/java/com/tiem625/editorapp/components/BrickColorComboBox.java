@@ -10,7 +10,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 import javafx.util.Callback;
@@ -20,41 +19,69 @@ import javafx.util.Callback;
  * @author Tiem625
  */
 public class BrickColorComboBox extends ComboBox<BrickColors> {
-    
-    public BrickColorComboBox() {
+
+    private class BrickColorCell extends ListCell<BrickColors> {
+
+        private final ComboBox<BrickColors> boxParent;
         
+        public BrickColorCell(ComboBox<BrickColors> boxParent) {
+            super();
+            this.boxParent = boxParent;
+        }
+
+        @Override
+        protected void updateItem(BrickColors item, boolean empty) {
+            
+            super.updateItem(item, empty);
+            
+            double brickWidth = Math.min(200.0, boxParent.getWidth());
+            double brickHeight = Math.min(150.0, boxParent.getHeight());
+
+            if (item == null) {
+                setGraphic(null);
+            } else {
+
+                Shape shape = new Rectangle(
+                        brickWidth,
+                        brickHeight,
+                        Color.web(item.getColorCode())
+                );
+                
+                setGraphic(shape);
+                setText(item.getJsonCode());
+            }
+        }
+
+    }
+
+    private final Callback<ListView<BrickColors>, ListCell<BrickColors>> 
+            BRICK_COLOR_CELL;
+    
+    
+
+    public BrickColorComboBox() {
+
         getItems().clear();
         getItems().add(null);
         getItems().addAll(BrickColors.values());
-        
+
         setEditable(false);
         getSelectionModel().selectFirst();
         
+        BRICK_COLOR_CELL = (ListView<BrickColors> param) -> {
+            return new BrickColorCell(this) ;
+        };
         
-        
-        setCellFactory((ListView<BrickColors> param) -> {
-            ListCell<BrickColors> cell = new ListCell<BrickColors>() {
-                @Override
-                protected void updateItem(BrickColors item, boolean empty) {
-                    super.updateItem(item, empty);
-                    
-                    if (item == null) {
-                        setGraphic(null);
-                    } else {
-                       
-                        Shape shape = new Rectangle(
-                                this.getWidth(), this.getHeight(), 
-                                Color.web(item.getColorCode())
-                        );
-                        setGraphic(shape);
-                    }
-                }
+        //set initial value
+        setButtonCell(BRICK_COLOR_CELL.call(null));
+        setCellFactory(BRICK_COLOR_CELL);
 
-            };
+        //render when value changes
+        valueProperty().addListener((obs, o, n) -> {
             
-            return cell;
+            setButtonCell(new BrickColorCell(this));
         });
-        
+
     }
-    
+
 }
