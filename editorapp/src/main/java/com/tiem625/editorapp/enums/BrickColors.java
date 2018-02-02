@@ -5,6 +5,8 @@
  */
 package com.tiem625.editorapp.enums;
 
+import java.util.stream.Stream;
+
 /**
  *
  * @author Tiem625
@@ -29,5 +31,15 @@ public enum BrickColors {
 
     public String getColorCode() {
         return colorCode;
+    }
+    
+    public static BrickColors fromJsonCode(String code) {
+        if (code == null) {
+            return null;
+        }
+        return Stream.of(values()).
+                filter(color -> color.getJsonCode().equalsIgnoreCase(code))
+                .findFirst()
+                .orElse(null);
     }
 }

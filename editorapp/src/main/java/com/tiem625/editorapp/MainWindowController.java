@@ -6,8 +6,16 @@
 package com.tiem625.editorapp;
 
 import com.tiem625.editorapp.components.BrickColorComboBox;
+import com.tiem625.editorapp.components.BrickColorComboBox.BrickColorCell;
+import com.tiem625.editorapp.components.Dialogs;
 import com.tiem625.editorapp.enums.BrickColors;
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
@@ -19,11 +27,17 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ArrayNode;
 
 /**
  *
@@ -43,6 +57,10 @@ public class MainWindowController implements Initializable {
     private TextField fldColPadding;
 
     private ComboBox<BrickColors>[][] gridNodes;
+    private FileChooser fileWindow;
+    
+    //convenience map to iterate fields accessible by direct map key
+    private Map<String, TextField> keyFieldsMap;
 
     @FXML
     private GridPane gridLevelGrid;
@@ -56,6 +74,24 @@ public class MainWindowController implements Initializable {
     @FXML
     private void handleImportLevelBtn(ActionEvent e) {
 
+        Button eventSource = (Button) e.getSource();
+        
+        Window ownerWindow = eventSource.getScene().getWindow();
+        
+        fileWindow.setTitle("Choose an existing level JSON...");
+        File levelFile = fileWindow.showOpenDialog(ownerWindow);
+
+        if (levelFile != null) {
+            try {
+                decodeLevelModel(new String(
+                        Files.readAllBytes(levelFile.toPath()),
+                        StandardCharsets.UTF_8));
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                
+                Dialogs.exceptionDialogue(ownerWindow, ex);
+            }
+        }
     }
 
     @FXML
@@ -130,7 +166,13 @@ public class MainWindowController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
+        
+        keyFieldsMap = new HashMap<>();
+        fileWindow = new FileChooser();
+        keyFieldsMap.put("level_name", fldLevelName);
+        keyFieldsMap.put("c_padding", fldColPadding);
+        keyFieldsMap.put("r_padding", fldRowPadding);
+        
         createNewLevel();
     }
 
@@ -150,7 +192,7 @@ public class MainWindowController implements Initializable {
         fldRowPadding.setText("0");
         fldGridCols.setText("1");
         fldGridRows.setText("1");
-        
+
         populateGrid();
     }
 
@@ -194,6 +236,41 @@ public class MainWindowController implements Initializable {
             });
         });
 
+    }
+
+    private void decodeLevelModel(String fileContents) throws IOException {
+
+        ObjectMapper mapper = new ObjectMapper();
+            
+        JsonNode levelTree = mapper.readTree(fileContents);
+        
+        //settle level name + padding info
+        keyFieldsMap.forEach((key, field) -> {
+            
+            field.setText(levelTree.get(key).asText());
+        });
+        
+        ArrayNode gridRows = (ArrayNode) levelTree.get("grid");
+        ArrayNode firstRow = (ArrayNode) gridRows.get(0);
+        
+        int numRows = gridRows.size();
+        int numCols = firstRow.size();
+        //set number of rows and cols
+        fldGridRows.setText(String.valueOf(numRows));
+        fldGridCols.setText(String.valueOf(numCols));
+        
+        //iterate contents of rows to set cell values
+        IntStream.range(0, numRows).forEach(rIdx -> {
+            
+            IntStream.range(0, numCols).forEach(cIdx -> {
+            
+                String code = gridRows.get(rIdx).get(cIdx).getTextValue();
+                BrickColorComboBox node = (BrickColorComboBox) gridNodes[rIdx][cIdx];
+                node.setButtonCell(new BrickColorCell(node));
+                node.setValue(BrickColors.fromJsonCode(code));
+            });
+            
+        });
     }
 
     private abstract class NumericPropChangeListener implements ChangeListener<String> {

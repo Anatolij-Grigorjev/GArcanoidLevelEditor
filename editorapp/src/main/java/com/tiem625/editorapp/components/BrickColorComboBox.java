@@ -20,7 +20,7 @@ import javafx.util.Callback;
  */
 public class BrickColorComboBox extends ComboBox<BrickColors> {
 
-    private class BrickColorCell extends ListCell<BrickColors> {
+    public static class BrickColorCell extends ListCell<BrickColors> {
 
         private final ComboBox<BrickColors> boxParent;
         
@@ -34,7 +34,8 @@ public class BrickColorComboBox extends ComboBox<BrickColors> {
             
             super.updateItem(item, empty);
             
-            double brickWidth = Math.min(200.0, boxParent.getWidth());
+            //200px or 90% width
+            double brickWidth = Math.min(200.0, boxParent.getWidth() - 0.1 * boxParent.getWidth());
             double brickHeight = Math.min(150.0, boxParent.getHeight());
 
             if (item == null) {
