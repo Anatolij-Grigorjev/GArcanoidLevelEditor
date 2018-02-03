@@ -18,8 +18,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -34,10 +37,13 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 /**
  *
@@ -89,13 +95,32 @@ public class MainWindowController implements Initializable {
             } catch (IOException ex) {
                 ex.printStackTrace();
                 
-                Dialogs.exceptionDialogue(ownerWindow, ex);
+                Dialogs.exceptionDialogue(ownerWindow, ex)
+                        .show();
             }
         }
     }
 
     @FXML
     private void handleExportLevelBtn(ActionEvent e) {
+        
+        Button eventSource = (Button) e.getSource();
+        
+        Window ownerWindow = eventSource.getScene().getWindow();
+        fileWindow.setTitle("Choose where to save level JSON...");
+        File saveFile = fileWindow.showSaveDialog(ownerWindow);
+        
+        if (saveFile != null) {
+            try {
+                Files.write(
+                        saveFile.toPath(),
+                        encodeLevelModel().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                Dialogs.exceptionDialogue(ownerWindow, ex)
+                        .show();
+            }
+        }
 
     }
 
@@ -237,6 +262,41 @@ public class MainWindowController implements Initializable {
         });
 
     }
+    
+    private String encodeLevelModel() throws IOException {
+        
+        
+        ObjectNode levelRoot = new ObjectNode(JsonNodeFactory.instance);
+        
+        //put metadata
+        keyFieldsMap.forEach((key, field) -> {
+            levelRoot.put(key, field.getText());
+        });
+        
+        //put grid
+        ArrayNode gridArray = levelRoot.putArray("grid");
+        
+        IntStream.range(0, gridNodes.length).mapToObj((rIdx) -> {
+            
+            ComboBox<BrickColors>[] row = gridNodes[rIdx];
+            
+            ArrayNode rowNode = new ArrayNode(JsonNodeFactory.instance);
+            //populate json array
+            Stream.of(row).forEach(elem -> {
+                BrickColors value = elem.getValue() == null? 
+                        null : elem.getValue();
+                rowNode.add(value != null ? value.getJsonCode() : null);
+            });
+            
+            return rowNode;
+        }).forEachOrdered(array -> {
+            gridArray.add(array);
+        });
+        
+        return new ObjectMapper()
+                .writerWithDefaultPrettyPrinter()
+                .writeValueAsString(levelRoot);
+    }
 
     private void decodeLevelModel(String fileContents) throws IOException {
 
@@ -266,8 +326,13 @@ public class MainWindowController implements Initializable {
             
                 String code = gridRows.get(rIdx).get(cIdx).getTextValue();
                 BrickColorComboBox node = (BrickColorComboBox) gridNodes[rIdx][cIdx];
-                node.setButtonCell(new BrickColorCell(node));
-                node.setValue(BrickColors.fromJsonCode(code));
+                BrickColors item = BrickColors.fromJsonCode(code);
+                node.setValue(item);
+                
+                //update on UI thread
+                Platform.runLater(() -> {
+                    BrickColorCell.setCellPropsByItem(node.getButtonCell(), item, node);
+                });
             });
             
         });

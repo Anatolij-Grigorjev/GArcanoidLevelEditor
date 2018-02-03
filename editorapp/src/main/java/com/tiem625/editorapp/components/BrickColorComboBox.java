@@ -34,12 +34,22 @@ public class BrickColorComboBox extends ComboBox<BrickColors> {
             
             super.updateItem(item, empty);
             
+            setCellPropsByItem(this, item, boxParent);
+        }
+        
+        //extracted cell change logic to help when setting item
+        public static void setCellPropsByItem(
+                ListCell<BrickColors> cell, 
+                BrickColors item, 
+                ComboBox<BrickColors> box) {
+            
             //200px or 90% width
-            double brickWidth = Math.min(200.0, boxParent.getWidth() - 0.1 * boxParent.getWidth());
-            double brickHeight = Math.min(150.0, boxParent.getHeight());
+            //150px or less height
+            double brickWidth = Math.min(200.0, box.getWidth() - 0.1 * box.getWidth());
+            double brickHeight = Math.min(150.0, box.getHeight());
 
             if (item == null) {
-                setGraphic(null);
+                cell.setGraphic(null);
             } else {
 
                 Shape shape = new Rectangle(
@@ -48,12 +58,15 @@ public class BrickColorComboBox extends ComboBox<BrickColors> {
                         Color.web(item.getColorCode())
                 );
                 
-                setGraphic(shape);
-                setText(item.getJsonCode());
+                cell.setGraphic(shape);
+                cell.setText(item.getJsonCode());
             }
+            
         }
 
     }
+    
+    
 
     private final Callback<ListView<BrickColors>, ListCell<BrickColors>> 
             BRICK_COLOR_CELL;
