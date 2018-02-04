@@ -26,6 +26,7 @@
    <top>
       <GridPane BorderPane.alignment="CENTER">
         <columnConstraints>
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
           <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
           <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
             <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
@@ -37,52 +38,62 @@
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
-            <Label text="Level Name:" GridPane.halignment="LEFT" GridPane.valignment="CENTER">
+            <Label text="Level Name:" GridPane.columnIndex="1" GridPane.halignment="LEFT" GridPane.valignment="CENTER">
                <padding>
                   <Insets left="5.0" />
                </padding>
             </Label>
-            <Label text="Grid Rows:" GridPane.columnIndex="1">
+            <Label text="Grid Rows:" GridPane.columnIndex="2">
                <padding>
                   <Insets left="5.0" />
                </padding>
             </Label>
-            <Label text="Grid Columns: " GridPane.columnIndex="2">
+            <Label text="Grid Columns: " GridPane.columnIndex="3">
                <padding>
                   <Insets left="5.0" />
                </padding>
             </Label>
-            <Label text="Row Padding: " GridPane.columnIndex="3">
+            <Label text="Row Padding: " GridPane.columnIndex="4">
                <padding>
                   <Insets left="5.0" />
                </padding>
             </Label>
-            <Label text="Column Padding:" GridPane.columnIndex="4">
+            <Label text="Column Padding:" GridPane.columnIndex="5">
                <padding>
                   <Insets left="5.0" />
                </padding>
             </Label>
-            <TextField fx:id="fldLevelName" GridPane.rowIndex="1">
+            <TextField fx:id="fldLevelName" GridPane.columnIndex="1" GridPane.rowIndex="1">
                <GridPane.margin>
                   <Insets left="5.0" right="5.0" />
                </GridPane.margin>
             </TextField>
-            <TextField fx:id="fldGridRows" GridPane.columnIndex="1" GridPane.rowIndex="1">
+            <TextField fx:id="fldGridRows" GridPane.columnIndex="2" GridPane.rowIndex="1">
                <GridPane.margin>
                   <Insets left="5.0" right="5.0" />
                </GridPane.margin>
             </TextField>
-            <TextField fx:id="fldGridCols" GridPane.columnIndex="2" GridPane.rowIndex="1">
+            <TextField fx:id="fldGridCols" GridPane.columnIndex="3" GridPane.rowIndex="1">
                <GridPane.margin>
                   <Insets left="5.0" right="5.0" />
                </GridPane.margin>
             </TextField>
-            <TextField fx:id="fldRowPadding" GridPane.columnIndex="3" GridPane.rowIndex="1">
+            <TextField fx:id="fldRowPadding" GridPane.columnIndex="4" GridPane.rowIndex="1">
                <GridPane.margin>
                   <Insets left="5.0" right="5.0" />
                </GridPane.margin>
             </TextField>
-            <TextField fx:id="fldColPadding" GridPane.columnIndex="4" GridPane.rowIndex="1">
+            <TextField fx:id="fldColPadding" GridPane.columnIndex="5" GridPane.rowIndex="1">
+               <GridPane.margin>
+                  <Insets left="5.0" right="5.0" />
+               </GridPane.margin>
+            </TextField>
+            <Label text="Level Number:">
+               <padding>
+                  <Insets left="5.0" />
+               </padding>
+            </Label>
+            <TextField fx:id="fldLevelNumber" GridPane.rowIndex="1">
                <GridPane.margin>
                   <Insets left="5.0" right="5.0" />
                </GridPane.margin>

@@ -66,5 +66,11 @@ public class Dialogs {
         alert.setContentText(info);
         return alert;
     }
+    
+    public static Alert warningDialog(Window owner, String warning) {
+        Alert alert = makeAlert(owner, Alert.AlertType.WARNING);
+        alert.setContentText(warning);
+        return alert;
+    }
 
 }

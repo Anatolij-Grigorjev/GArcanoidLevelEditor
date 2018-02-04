@@ -14,12 +14,12 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.function.Predicate;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javafx.application.Platform;
@@ -37,7 +37,6 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
 import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -52,6 +51,8 @@ import org.codehaus.jackson.node.ObjectNode;
 public class MainWindowController implements Initializable {
 
     @FXML
+    private TextField fldLevelNumber;
+    @FXML
     private TextField fldLevelName;
     @FXML
     private TextField fldGridRows;
@@ -64,7 +65,7 @@ public class MainWindowController implements Initializable {
 
     private ComboBox<BrickColors>[][] gridNodes;
     private FileChooser fileWindow;
-    
+
     //convenience map to iterate fields accessible by direct map key
     private Map<String, TextField> keyFieldsMap;
 
@@ -81,9 +82,9 @@ public class MainWindowController implements Initializable {
     private void handleImportLevelBtn(ActionEvent e) {
 
         Button eventSource = (Button) e.getSource();
-        
+
         Window ownerWindow = eventSource.getScene().getWindow();
-        
+
         fileWindow.setTitle("Choose an existing level JSON...");
         File levelFile = fileWindow.showOpenDialog(ownerWindow);
 
@@ -94,7 +95,7 @@ public class MainWindowController implements Initializable {
                         StandardCharsets.UTF_8));
             } catch (IOException ex) {
                 ex.printStackTrace();
-                
+
                 Dialogs.exceptionDialogue(ownerWindow, ex)
                         .show();
             }
@@ -103,18 +104,27 @@ public class MainWindowController implements Initializable {
 
     @FXML
     private void handleExportLevelBtn(ActionEvent e) {
-        
+
         Button eventSource = (Button) e.getSource();
-        
+
         Window ownerWindow = eventSource.getScene().getWindow();
         fileWindow.setTitle("Choose where to save level JSON...");
+        fileWindow.setInitialFileName(String.format("level_%s.json", fldLevelNumber.getText()));
+
         File saveFile = fileWindow.showSaveDialog(ownerWindow);
-        
+
         if (saveFile != null) {
             try {
+                setLevelNumber(saveFile.getName());
+                boolean overwrite = saveFile.exists();
                 Files.write(
                         saveFile.toPath(),
                         encodeLevelModel().getBytes(StandardCharsets.UTF_8));
+                //no need to sync name if overwriting level file
+                if (!overwrite) {
+                    syncLevelName(ownerWindow);
+                }
+
             } catch (IOException ex) {
                 ex.printStackTrace();
                 Dialogs.exceptionDialogue(ownerWindow, ex)
@@ -124,12 +134,86 @@ public class MainWindowController implements Initializable {
 
     }
 
+    private void syncLevelName(Window ownerWindow) throws IOException {
+        fileWindow.setTitle("Select the levelnames file...");
+        File levelNamesFile = fileWindow.showOpenDialog(ownerWindow);
+
+        if (levelNamesFile != null) {
+            
+            List<String> names = readLevelNamesList(levelNamesFile);
+            
+            //insert new level name into list where required
+            Integer levelNumber = Integer.valueOf(fldLevelNumber.getText());
+            String levelName = String.format(
+                    "#%s: \n%s", 
+                    levelNumber,
+                    fldLevelName.getText());
+            if (levelNumber < names.size()) {
+                names.add(levelNumber - 1, levelName);
+            } else {
+                names.add(levelName);
+            }
+            
+            //write new list back into file using same structure
+            writeLevelNamesList(names, levelNamesFile);
+            
+            
+        } else {
+            Dialogs.warningDialog(ownerWindow, "You have decided not to sync "
+                    + "the name of the created level with the level_names menu "
+                    + "registry.");
+        }
+    }
+
+    private List<String> readLevelNamesList(File levelNamesFile) throws IOException {
+        //parse level names file into a JSON tree
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode levelNamesRootNode = mapper.readTree(levelNamesFile);
+        ArrayNode namesNode = (ArrayNode) levelNamesRootNode.get("names");
+        //collect level names from file into ordered list
+        List<String> names = new ArrayList<>();
+        for (JsonNode nameNode: namesNode) {
+            names.add(nameNode.asText());
+        }
+        return names;
+    }
+    
+    private void writeLevelNamesList(List<String> names, File levelNamesFile) throws IOException {
+        
+        ObjectNode levelNamesRootNode = new ObjectNode(JsonNodeFactory.instance);
+        
+        ArrayNode levelNamesNode = levelNamesRootNode.putArray("names");
+        
+        names.forEach(name -> {
+            levelNamesNode.add(name);
+        });
+        
+        byte[] jsonBytes = new ObjectMapper()
+                .writerWithDefaultPrettyPrinter()
+                .writeValueAsBytes(levelNamesRootNode);
+        
+        Files.write(
+                levelNamesFile.toPath(),
+                jsonBytes);
+    }
+
+    private void setLevelNumber(String fileName) {
+
+        //this is a proper filename
+        String[] fileParts = fileName.split("_");
+        if (fileParts.length > 1) {
+            //proper filename has number before extension
+            String[] numberParts = fileParts[1].split("\\.");
+            fldLevelNumber.setText(numberParts[0]);
+        }
+    }
+
     private final Predicate<Integer> MIN_1 = val -> val >= 1;
     private final Predicate<Integer> MIN_0 = val -> val >= 0;
 
     private final ChangeListener<String> listenerGridRows = new NumericPropChangeListener(1, MIN_1) {
         @Override
-        protected void setGridProp(Integer validValue) {
+        protected void useValidNumeric(Integer validValue) {
             ObservableList<RowConstraints> rowConstraints = gridLevelGrid.getRowConstraints();
             //dont change value if its the same
             if (rowConstraints.size() == validValue) {
@@ -149,7 +233,7 @@ public class MainWindowController implements Initializable {
 
     private final ChangeListener<String> listenerGridCols = new NumericPropChangeListener(1, MIN_1) {
         @Override
-        protected void setGridProp(Integer validValue) {
+        protected void useValidNumeric(Integer validValue) {
             ObservableList<ColumnConstraints> columnConstraints = gridLevelGrid.getColumnConstraints();
             //dont change value if its the smae
             if (columnConstraints.size() == validValue) {
@@ -170,7 +254,7 @@ public class MainWindowController implements Initializable {
     private final ChangeListener<String> listenerGridRowPadding = new NumericPropChangeListener(0, MIN_0) {
 
         @Override
-        protected void setGridProp(Integer validValue) {
+        protected void useValidNumeric(Integer validValue) {
 
             if (gridLevelGrid.getVgap() != validValue) {
                 gridLevelGrid.setVgap(validValue);
@@ -181,7 +265,7 @@ public class MainWindowController implements Initializable {
     private final ChangeListener<String> listenerGridColPadding = new NumericPropChangeListener(0, MIN_0) {
 
         @Override
-        protected void setGridProp(Integer validValue) {
+        protected void useValidNumeric(Integer validValue) {
 
             if (gridLevelGrid.getHgap() != validValue) {
                 gridLevelGrid.setHgap(validValue);
@@ -189,29 +273,42 @@ public class MainWindowController implements Initializable {
         }
     };
 
+    private final ChangeListener<String> listenerLevelNumber = new NumericPropChangeListener(1, MIN_1) {
+
+        @Override
+        protected void useValidNumeric(Integer validValue) {
+            fldLevelNumber.setText(String.valueOf(validValue));
+        }
+
+    };
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        
+
         keyFieldsMap = new HashMap<>();
         fileWindow = new FileChooser();
         keyFieldsMap.put("level_name", fldLevelName);
         keyFieldsMap.put("c_padding", fldColPadding);
         keyFieldsMap.put("r_padding", fldRowPadding);
-        
-        createNewLevel();
-    }
 
-    private void createNewLevel() {
+        fldLevelNumber.textProperty().removeListener(listenerLevelNumber);
         fldGridRows.textProperty().removeListener(listenerGridRows);
         fldGridCols.textProperty().removeListener(listenerGridCols);
         fldRowPadding.textProperty().removeListener(listenerGridRowPadding);
         fldColPadding.textProperty().removeListener(listenerGridColPadding);
 
+        fldLevelNumber.textProperty().addListener(listenerLevelNumber);
         fldGridRows.textProperty().addListener(listenerGridRows);
         fldGridCols.textProperty().addListener(listenerGridCols);
         fldRowPadding.textProperty().addListener(listenerGridRowPadding);
         fldColPadding.textProperty().addListener(listenerGridColPadding);
 
+        createNewLevel();
+    }
+
+    private void createNewLevel() {
+
+        fldLevelNumber.setText("1");
         fldLevelName.setText("<NONAME>");
         fldColPadding.setText("0");
         fldRowPadding.setText("0");
@@ -262,37 +359,36 @@ public class MainWindowController implements Initializable {
         });
 
     }
-    
+
     private String encodeLevelModel() throws IOException {
-        
-        
+
         ObjectNode levelRoot = new ObjectNode(JsonNodeFactory.instance);
-        
+
         //put metadata
         keyFieldsMap.forEach((key, field) -> {
             levelRoot.put(key, field.getText());
         });
-        
+
         //put grid
         ArrayNode gridArray = levelRoot.putArray("grid");
-        
+
         IntStream.range(0, gridNodes.length).mapToObj((rIdx) -> {
-            
+
             ComboBox<BrickColors>[] row = gridNodes[rIdx];
-            
+
             ArrayNode rowNode = new ArrayNode(JsonNodeFactory.instance);
             //populate json array
             Stream.of(row).forEach(elem -> {
-                BrickColors value = elem.getValue() == null? 
-                        null : elem.getValue();
+                BrickColors value = elem.getValue() == null
+                        ? null : elem.getValue();
                 rowNode.add(value != null ? value.getJsonCode() : null);
             });
-            
+
             return rowNode;
         }).forEachOrdered(array -> {
             gridArray.add(array);
         });
-        
+
         return new ObjectMapper()
                 .writerWithDefaultPrettyPrinter()
                 .writeValueAsString(levelRoot);
@@ -301,40 +397,40 @@ public class MainWindowController implements Initializable {
     private void decodeLevelModel(String fileContents) throws IOException {
 
         ObjectMapper mapper = new ObjectMapper();
-            
+
         JsonNode levelTree = mapper.readTree(fileContents);
-        
+
         //settle level name + padding info
         keyFieldsMap.forEach((key, field) -> {
-            
+
             field.setText(levelTree.get(key).asText());
         });
-        
+
         ArrayNode gridRows = (ArrayNode) levelTree.get("grid");
         ArrayNode firstRow = (ArrayNode) gridRows.get(0);
-        
+
         int numRows = gridRows.size();
         int numCols = firstRow.size();
         //set number of rows and cols
         fldGridRows.setText(String.valueOf(numRows));
         fldGridCols.setText(String.valueOf(numCols));
-        
+
         //iterate contents of rows to set cell values
         IntStream.range(0, numRows).forEach(rIdx -> {
-            
+
             IntStream.range(0, numCols).forEach(cIdx -> {
-            
+
                 String code = gridRows.get(rIdx).get(cIdx).getTextValue();
                 BrickColorComboBox node = (BrickColorComboBox) gridNodes[rIdx][cIdx];
                 BrickColors item = BrickColors.fromJsonCode(code);
                 node.setValue(item);
-                
+
                 //update on UI thread
                 Platform.runLater(() -> {
                     BrickColorCell.setCellPropsByItem(node.getButtonCell(), item, node);
                 });
             });
-            
+
         });
     }
 
@@ -375,10 +471,10 @@ public class MainWindowController implements Initializable {
                 validValue = propConstraint.test(validValue) ? validValue : defaultVal;
             }
 
-            setGridProp(validValue);
+            useValidNumeric(validValue);
         }
 
-        protected abstract void setGridProp(Integer validValue);
+        protected abstract void useValidNumeric(Integer validValue);
     }
 
 }
