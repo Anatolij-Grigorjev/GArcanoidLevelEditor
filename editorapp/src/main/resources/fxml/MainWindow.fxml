@@ -105,7 +105,7 @@
       </GridPane>
    </top>
    <bottom>
-      <HBox prefWidth="800.0" spacing="50.0" BorderPane.alignment="CENTER">
+      <HBox prefWidth="800.0" spacing="20.0" BorderPane.alignment="CENTER">
          <children>
             <Button mnemonicParsing="false" onAction="#handleCreateLevelBtn" text="Create Level" HBox.hgrow="ALWAYS">
                <HBox.margin>
@@ -124,6 +124,14 @@
                </padding>
             </Button>
             <Button mnemonicParsing="false" onAction="#handleExportLevelBtn" text="Export Level (SAVE)" HBox.hgrow="ALWAYS">
+               <HBox.margin>
+                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+               </HBox.margin>
+               <padding>
+                  <Insets bottom="20.0" left="30.0" right="30.0" top="20.0" />
+               </padding>
+            </Button>
+            <Button mnemonicParsing="false" onAction="#handleToolsButton" prefHeight="57.0" prefWidth="148.0" text="Tools...">
                <HBox.margin>
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                </HBox.margin>
