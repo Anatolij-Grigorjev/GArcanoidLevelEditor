@@ -9,6 +9,7 @@ import com.tiem625.editorapp.components.BrickColorComboBox;
 import com.tiem625.editorapp.components.BrickColorComboBox.BrickColorCell;
 import com.tiem625.editorapp.components.Dialogs;
 import com.tiem625.editorapp.enums.BrickColors;
+import com.tiem625.editorapp.tool.ToolDialogController;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -28,8 +29,10 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
@@ -37,6 +40,8 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -62,8 +67,15 @@ public class MainWindowController implements Initializable {
     private TextField fldRowPadding;
     @FXML
     private TextField fldColPadding;
+    
+    Stage toolDialogStage;
+    ToolDialogController toolDialogController;
 
     private ComboBox<BrickColors>[][] gridNodes;
+
+    public ComboBox<BrickColors>[][] getGridNodes() {
+        return gridNodes;
+    }
     private FileChooser fileWindow;
 
     //convenience map to iterate fields accessible by direct map key
@@ -75,8 +87,7 @@ public class MainWindowController implements Initializable {
     @FXML 
     private void handleToolsButton(ActionEvent e) {
         
-        
-        
+        toolDialogStage.showAndWait();
     }
 
     @FXML
@@ -309,6 +320,23 @@ public class MainWindowController implements Initializable {
         fldGridCols.textProperty().addListener(listenerGridCols);
         fldRowPadding.textProperty().addListener(listenerGridRowPadding);
         fldColPadding.textProperty().addListener(listenerGridColPadding);
+        
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ToolsWindow.fxml"));
+            Scene scene = new Scene(loader.load());
+            
+            toolDialogStage = new Stage(StageStyle.UTILITY);
+            toolDialogStage.setTitle("Batch Row/Col ops...");
+            toolDialogStage.setScene(scene);
+            toolDialogStage.setResizable(false);
+            
+            toolDialogController = loader.getController();
+            toolDialogController.setParentController(this);
+            toolDialogController.setStage(toolDialogStage);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        
 
         createNewLevel();
     }
