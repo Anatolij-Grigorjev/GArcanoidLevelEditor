@@ -34,90 +34,100 @@ import javafx.stage.Stage;
  * @author Tiem625
  */
 public class ToolDialogController implements Initializable {
-
+    
     @FXML
     private BrickColorComboBox ddColColor;
-
+    
     @FXML
     private BrickColorComboBox ddRowColor;
-
+    
     @FXML
     private TextField fldColsIndices;
-
+    
     @FXML
     private TextField fldRowsIndices;
-
+    
     @FXML
     private TextField fldRowsStride;
-
+    
     @FXML
     private TextField fldColsStride;
-
+    
+    @FXML
+    private TextField fldRowsOffset;
+    
+    @FXML
+    private TextField fldColsOffset;
+    
     private MainWindowController parentController;
-
+    
     private Stage stage;
-
+    
     public void setStage(Stage stage) {
         this.stage = stage;
     }
-
+    
     public void setParentController(MainWindowController parentController) {
         this.parentController = parentController;
     }
     
     private final ChangeListener<String> listenerRowsStride = TextFieldUtils.makeMin1NumericListener((validValue) -> {
         
-            fldRowsStride.setText(String.valueOf(validValue));
-        });
+        fldRowsStride.setText(String.valueOf(validValue));
+    });
     
     private final ChangeListener<String> listenerColsStride = TextFieldUtils.makeMin1NumericListener((validValue) -> {
         
-            fldColsStride.setText(String.valueOf(validValue));
-        });
-
+        fldColsStride.setText(String.valueOf(validValue));
+    });
+    
+    private final ChangeListener<String> listenerRowsOffset = TextFieldUtils.makeMin0NumericListener((validValue) -> {
+        
+        fldRowsOffset.setText(String.valueOf(validValue));
+    });
+    
+    private final ChangeListener<String> listenerColsOffset = TextFieldUtils.makeMin0NumericListener((validValue) -> {
+        
+        fldColsOffset.setText(String.valueOf(validValue));
+    });
+    
     @FXML
     private void handleToolClose(ActionEvent e) {
 
         //just close window
         closeDialog();
     }
-
+    
     @FXML
     private void handleToolApply(ActionEvent e) {
-
+        
         List<Integer> rowIndices = new ArrayList<>();
         List<Integer> colIndices = new ArrayList<>();
-
+        
         final ComboBox<BrickColors>[][] gridNodes = parentController.getGridNodes();
-
+        
         rowIndices.addAll(parseChangeIndices(fldRowsIndices, gridNodes.length));
         if (gridNodes.length > 0) {
             colIndices.addAll(parseChangeIndices(fldColsIndices, gridNodes[0].length));
         }
-
+        
         System.out.println("Rows to change: " + Arrays.toString(rowIndices.toArray()));
         System.out.println("Cols to change: " + Arrays.toString(colIndices.toArray()));
-
+        
         Platform.runLater(() -> {
-
-            Integer rowStride = 1;
-            try {
-                rowStride = Integer.parseInt(fldRowsStride.getText());
-            } catch (NumberFormatException ex) {
-            }
-
-            Integer colStride = 1;
-            try {
-                colStride = Integer.parseInt(fldColsStride.getText());
-            } catch (NumberFormatException ex) {
-            }
-
+            
+            Integer rowStride = Integer.parseInt(fldRowsStride.getText());
+            Integer colStride = Integer.parseInt(fldColsStride.getText());
+            Integer rowOffset = Integer.parseInt(fldRowsOffset.getText());
+            Integer colOffset = Integer.parseInt(fldColsOffset.getText());
+            
+            
             //apply to row indices
             if (!rowIndices.isEmpty()) {
-
+                
                 for (Integer idx : rowIndices) {
-
-                    for (int i = 0; i < gridNodes[idx].length; i += rowStride) {
+                    
+                    for (int i = rowOffset; i < gridNodes[idx].length; i += rowStride) {
                         gridNodes[idx][i].setValue(ddRowColor.getValue());
                     }
                 }
@@ -125,36 +135,43 @@ public class ToolDialogController implements Initializable {
 
             //apply to col indices
             if (!colIndices.isEmpty()) {
-
+                
                 for (Integer idx : colIndices) {
-
-                    for (int i = 0; i < gridNodes.length; i += colStride) {
+                    
+                    for (int i = colOffset; i < gridNodes.length; i += colStride) {
                         gridNodes[i][idx].setValue(ddColColor.getValue());
                     }
                 }
             }
         });
-
+        
         closeDialog();
     }
-
+    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         
         fldRowsStride.textProperty().removeListener(listenerRowsStride);
         fldColsStride.textProperty().removeListener(listenerColsStride);
+        fldRowsOffset.textProperty().removeListener(listenerRowsOffset);
+        fldRowsOffset.textProperty().removeListener(listenerColsOffset);
         
         fldRowsStride.textProperty().addListener(listenerRowsStride);
         fldColsStride.textProperty().addListener(listenerColsStride);
+        fldRowsOffset.textProperty().addListener(listenerRowsOffset);
+        fldColsOffset.textProperty().addListener(listenerColsOffset);
 
+        
         fldColsIndices.setText("");
         fldRowsIndices.setText("");
         ddColColor.setValue(null);
         ddRowColor.setValue(null);
         fldRowsStride.setText("1");
         fldColsStride.setText("1");
+        fldRowsOffset.setText("0");
+        fldColsOffset.setText("0");
     }
-
+    
     private void closeDialog() {
         stage.close();
     }
@@ -169,15 +186,15 @@ public class ToolDialogController implements Initializable {
      * @return
      */
     private List<Integer> parseChangeIndices(TextField field, int maxIndices) {
-
+        
         String input = field.getText().trim().toLowerCase(Locale.getDefault());
-
+        
         if (input.isEmpty() || maxIndices < 1) {
             return Collections.EMPTY_LIST;
         }
-
+        
         Stream<Integer> indices = IntStream.range(0, maxIndices).boxed();
-
+        
         switch (input) {
             //apply to all indices in the dimension
             case "all":
@@ -201,8 +218,8 @@ public class ToolDialogController implements Initializable {
                 }).filter(Objects::nonNull)
                         .filter(idx -> 0 <= idx && idx < maxIndices);
         }
-
+        
         return indices.collect(Collectors.toList());
     }
-
+    
 }
