@@ -8,6 +8,7 @@ package com.tiem625.editorapp;
 import com.tiem625.editorapp.components.BrickColorComboBox;
 import com.tiem625.editorapp.components.BrickColorComboBox.BrickColorCell;
 import com.tiem625.editorapp.components.Dialogs;
+import com.tiem625.editorapp.components.TextFieldUtils;
 import com.tiem625.editorapp.enums.BrickColors;
 import com.tiem625.editorapp.tool.ToolDialogController;
 import java.io.File;
@@ -226,12 +227,8 @@ public class MainWindowController implements Initializable {
         }
     }
 
-    private final Predicate<Integer> MIN_1 = val -> val >= 1;
-    private final Predicate<Integer> MIN_0 = val -> val >= 0;
-
-    private final ChangeListener<String> listenerGridRows = new NumericPropChangeListener(1, MIN_1) {
-        @Override
-        protected void useValidNumeric(Integer validValue) {
+    private final ChangeListener<String> listenerGridRows = TextFieldUtils.makeMin1NumericListener((validValue) -> {
+        
             ObservableList<RowConstraints> rowConstraints = gridLevelGrid.getRowConstraints();
             //dont change value if its the same
             if (rowConstraints.size() == validValue) {
@@ -246,12 +243,10 @@ public class MainWindowController implements Initializable {
             });
 
             populateGrid();
-        }
-    };
+        });
 
-    private final ChangeListener<String> listenerGridCols = new NumericPropChangeListener(1, MIN_1) {
-        @Override
-        protected void useValidNumeric(Integer validValue) {
+    private final ChangeListener<String> listenerGridCols = TextFieldUtils.makeMin1NumericListener((validValue) -> {
+        
             ObservableList<ColumnConstraints> columnConstraints = gridLevelGrid.getColumnConstraints();
             //dont change value if its the smae
             if (columnConstraints.size() == validValue) {
@@ -266,39 +261,26 @@ public class MainWindowController implements Initializable {
             });
 
             populateGrid();
-        }
-    };
+        });
 
-    private final ChangeListener<String> listenerGridRowPadding = new NumericPropChangeListener(0, MIN_0) {
-
-        @Override
-        protected void useValidNumeric(Integer validValue) {
+    private final ChangeListener<String> listenerGridRowPadding = TextFieldUtils.makeMin0NumericListener((validValue) -> {
 
             if (gridLevelGrid.getVgap() != validValue) {
                 gridLevelGrid.setVgap(validValue);
             }
-        }
-    };
+        });
 
-    private final ChangeListener<String> listenerGridColPadding = new NumericPropChangeListener(0, MIN_0) {
-
-        @Override
-        protected void useValidNumeric(Integer validValue) {
+    private final ChangeListener<String> listenerGridColPadding = TextFieldUtils.makeMin0NumericListener((validValue) -> {
 
             if (gridLevelGrid.getHgap() != validValue) {
                 gridLevelGrid.setHgap(validValue);
             }
-        }
-    };
+        });
 
-    private final ChangeListener<String> listenerLevelNumber = new NumericPropChangeListener(1, MIN_1) {
-
-        @Override
-        protected void useValidNumeric(Integer validValue) {
+    private final ChangeListener<String> listenerLevelNumber = TextFieldUtils.makeMin1NumericListener((validValue) -> {
+        
             fldLevelNumber.setText(String.valueOf(validValue));
-        }
-
-    };
+        });
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -468,48 +450,4 @@ public class MainWindowController implements Initializable {
 
         });
     }
-
-    private abstract class NumericPropChangeListener implements ChangeListener<String> {
-
-        private final int defaultVal;
-        private final Predicate<Integer> propConstraint;
-
-        public NumericPropChangeListener(int defaultVal, Predicate<Integer> propConstraint) {
-            this.defaultVal = defaultVal;
-            this.propConstraint = propConstraint;
-        }
-
-        protected Integer parseValidValue(String oldVal, String newVal) {
-
-            Integer propVal = null;
-
-            try {
-                propVal = Integer.parseInt(newVal);
-            } catch (NumberFormatException ex1) {
-                try {
-                    propVal = Integer.parseInt(oldVal);
-                } catch (NumberFormatException ex2) {
-                    propVal = defaultVal;
-                }
-            }
-
-            return propVal;
-        }
-
-        @Override
-        public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-
-            Integer validValue = parseValidValue(oldValue, newValue);
-
-            //check constraint, use default if value doesnt pass it
-            if (validValue != defaultVal) {
-                validValue = propConstraint.test(validValue) ? validValue : defaultVal;
-            }
-
-            useValidNumeric(validValue);
-        }
-
-        protected abstract void useValidNumeric(Integer validValue);
-    }
-
 }
